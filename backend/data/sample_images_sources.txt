@@ -1,0 +1,8 @@
+MarineGuard AI demo imagery sources:
+1) Underwater photo of coral reef — Jerry Reid, U.S. Fish and Wildlife Service — Public domain.
+https://commons.wikimedia.org/wiki/File:Underwater_photo_of_coral_reef.jpg
+2) Marine debris on Hawaiian coast — NOAA — Public domain.
+https://commons.wikimedia.org/wiki/File:Marine_debris_on_Hawaiian_coast.jpg
+3) Second Beach for International Coastal Cleanup — National Marine Sanctuaries / NOAA — Public domain.
+https://commons.wikimedia.org/wiki/File:Second_Beach_for_International_Coastal_Cleanup_(37209289731).jpg
+Run python download_sample_images.py to place local copies under data/sample_images/.

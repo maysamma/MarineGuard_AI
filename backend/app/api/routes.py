@@ -1,0 +1,182 @@
+﻿import json, os, shutil, random
+from pathlib import Path
+from datetime import datetime, timezone, timedelta
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Header
+from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from app.database.db import get_db
+from app.models.models import Site, Report, Image, AIResult, SensorReading, Score, Recommendation, Verification, AgentRun, Observation
+from app.schemas.schemas import ReportCreate, SensorSimulate, VerificationUpdate
+from app.agents.orchestrator import Orchestrator
+from app.core.config import settings
+
+router=APIRouter(prefix="/api")
+ALLOWED={"image/jpeg","image/png","image/webp"}
+
+
+def require_reviewer(x_reviewer_token: str | None = Header(default=None)):
+    if settings.reviewer_token and x_reviewer_token != settings.reviewer_token:
+        raise HTTPException(403, "Reviewer authorization required")
+
+def report_json(db,r):
+    score=db.query(Score).filter_by(report_id=r.id).order_by(Score.created_at.desc()).first()
+    rec=db.query(Recommendation).filter_by(report_id=r.id).order_by(Recommendation.created_at.desc()).first()
+    ai=db.query(AIResult).filter_by(report_id=r.id).order_by(AIResult.created_at.desc()).first()
+    v=db.query(Verification).filter_by(report_id=r.id).first()
+    return {"id":r.id,"site_id":r.site_id,"site_name":r.site.name,"description":r.description,"latitude":r.latitude,"longitude":r.longitude,"observation_type":r.observation_type,"depth_m":r.depth_m,"status":r.status,"created_at":r.created_at,"image":({"url":f"/api/images/{r.image.id}","filename":r.image.original_name,"status":r.image.analysis_status} if r.image else None),"ai":({"indicators":json.loads(ai.indicators_json),"confidence":ai.confidence,"summary":ai.summary,"limitations":ai.limitations,"needs_review":ai.needs_review} if ai else None),"priority":({"score":score.score,"level":score.level,"reasons":json.loads(score.reasons_json)} if score else None),"recommendation":({"action":rec.action,"rationale":rec.rationale} if rec else None),"verification":({"status":v.status,"reviewer":v.reviewer,"notes":v.notes,"verified_at":v.verified_at} if v else None)}
+
+@router.get("/health")
+def health(): return {"status":"ok","service":"MarineGuard AI"}
+
+@router.post("/reports")
+def create_report(payload: ReportCreate, db: Session=Depends(get_db)):
+    site=None
+
+    if payload.site_name:
+        site=db.query(Site).filter(
+            func.lower(Site.name)==payload.site_name.lower()
+        ).first()
+
+    if not site:
+        site=db.query(Site).filter(
+            func.abs(Site.latitude - payload.latitude) < 0.0001,
+            func.abs(Site.longitude - payload.longitude) < 0.0001
+        ).first()
+
+    if not site:
+        site=Site(
+            name=payload.site_name or f"Observation Site {payload.latitude:.4f}, {payload.longitude:.4f}",
+            latitude=payload.latitude,
+            longitude=payload.longitude
+        )
+        db.add(site)
+        db.commit()
+        db.refresh(site)
+
+    r=Report(
+        site_id=site.id,
+        description=payload.description,
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        observation_type=payload.observation_type,
+        depth_m=payload.depth_m
+    )
+    db.add(r)
+    db.commit()
+    db.refresh(r)
+    return report_json(db,r)
+
+@router.post("/reports/{report_id}/image")
+def upload_image(report_id:int,file:UploadFile=File(...),db:Session=Depends(get_db)):
+    r=db.get(Report,report_id)
+    if not r: raise HTTPException(404,"Report not found")
+    if file.content_type not in ALLOWED: raise HTTPException(400,"Unsupported image type. Use JPG, JPEG, PNG or WebP.")
+    content=file.file.read()
+    if len(content)>settings.max_image_mb*1024*1024: raise HTTPException(400,f"Image exceeds {settings.max_image_mb} MB limit.")
+    ext=Path(file.filename or "image.jpg").suffix.lower()
+    path=Path(settings.upload_dir)/f"report_{report_id}{ext}"
+    path.write_bytes(content)
+    old=db.query(Image).filter_by(report_id=report_id).first()
+    if old: old.file_path=str(path); old.original_name=file.filename or path.name; old.mime_type=file.content_type; old.analysis_status="pending"
+    else: db.add(Image(report_id=report_id,file_path=str(path),original_name=file.filename or path.name,mime_type=file.content_type))
+    db.commit(); return report_json(db,r)
+
+@router.post("/reports/{report_id}/analyze")
+def analyze_report(report_id:int,db:Session=Depends(get_db)):
+    r=db.get(Report,report_id)
+    if not r: raise HTTPException(404,"Report not found")
+    if not r.image: raise HTTPException(400,"Upload an image before analysis.")
+    try: result=Orchestrator(db).run(r); return {"report":report_json(db,r),"result":result}
+    except Exception as e:
+        r.status="analysis_failed"; db.commit(); raise HTTPException(500,f"Analysis failed safely: {type(e).__name__}")
+
+@router.get("/reports")
+def list_reports(status:str|None=None,db:Session=Depends(get_db)):
+    q=db.query(Report).order_by(Report.created_at.desc())
+    if status: q=q.filter(Report.status==status)
+    return [report_json(db,r) for r in q.all()]
+
+@router.get("/reports/{report_id}")
+def get_report(report_id:int,db:Session=Depends(get_db)):
+    r=db.get(Report,report_id)
+    if not r: raise HTTPException(404,"Report not found")
+    return report_json(db,r)
+
+@router.get("/images/{image_id}")
+def get_image(image_id:int,db:Session=Depends(get_db)):
+    image=db.get(Image,image_id)
+    if not image or not os.path.exists(image.file_path): raise HTTPException(404,"Image not found")
+    return FileResponse(image.file_path,media_type=image.mime_type,filename=image.original_name)
+
+@router.get("/sites")
+def sites(db:Session=Depends(get_db)):
+    return [{"id":s.id,"name":s.name,"latitude":s.latitude,"longitude":s.longitude} for s in db.query(Site).all()]
+
+@router.get("/sites/{site_id}")
+def site(site_id:int,db:Session=Depends(get_db)):
+    s=db.get(Site,site_id)
+    if not s: raise HTTPException(404,"Site not found")
+    reports=db.query(Report).filter_by(site_id=site_id).order_by(Report.created_at.desc()).all()
+    return {"site":{"id":s.id,"name":s.name,"latitude":s.latitude,"longitude":s.longitude},"reports":[report_json(db,r) for r in reports],"history":[{"type":o.type,"source":o.source,"created_at":o.created_at,"evidence":json.loads(o.evidence_json)} for o in db.query(Observation).filter_by(site_id=site_id).order_by(Observation.created_at.desc()).all()]}
+
+@router.get("/sites/{site_id}/history")
+def history(site_id:int,db:Session=Depends(get_db)):
+    return {"observations":[{"id":o.id,"type":o.type,"source":o.source,"created_at":o.created_at,"evidence":json.loads(o.evidence_json)} for o in db.query(Observation).filter_by(site_id=site_id).order_by(Observation.created_at).all()],"reports":[report_json(db,r) for r in db.query(Report).filter_by(site_id=site_id).order_by(Report.created_at).all()]}
+
+@router.post("/sensors/simulate")
+def simulate_sensor(payload:SensorSimulate,db:Session=Depends(get_db)):
+    s=db.get(Site,payload.site_id)
+    if not s: raise HTTPException(404,"Site not found")
+    now=datetime.now(timezone.utc)
+    readings=[]
+    specs=[("temperature",34.0 if payload.anomaly else 29.2,"آ°C"),("salinity",40.5 if payload.anomaly else 38.1,"PSU"),("turbidity",24.0 if payload.anomaly else 8.4,"NTU")]
+    for typ,val,unit in specs:
+        val += random.uniform(-0.5,0.5)
+        rec=SensorReading(site_id=s.id,source="simulated",sensor_type=typ,value=round(val,2),unit=unit,timestamp=now,latitude=s.latitude,longitude=s.longitude); db.add(rec); readings.append(rec)
+    db.commit()
+    return {"source":"simulated","site_id":s.id,"readings":[{"sensor_type":x.sensor_type,"value":x.value,"unit":x.unit,"timestamp":x.timestamp} for x in readings]}
+
+@router.get("/sensors/readings")
+def sensor_readings(site_id:int|None=None,db:Session=Depends(get_db)):
+    q=db.query(SensorReading).order_by(SensorReading.timestamp.desc())
+    if site_id: q=q.filter(SensorReading.site_id==site_id)
+    return [{"id":x.id,"site_id":x.site_id,"source":x.source,"sensor_type":x.sensor_type,"value":x.value,"unit":x.unit,"timestamp":x.timestamp,"latitude":x.latitude,"longitude":x.longitude} for x in q.limit(100).all()]
+
+@router.get("/map/observations")
+def map_observations(db:Session=Depends(get_db)):
+    return [{"id":r.id,"site_id":r.site_id,"site_name":r.site.name,"latitude":r.latitude,"longitude":r.longitude,"priority":(r.scores[-1].level if r.scores else "Needs Review"),"score":(r.scores[-1].score if r.scores else 0),"status":r.status,"image":(f"/api/images/{r.image.id}" if r.image else None),"description":r.description} for r in db.query(Report).order_by(Report.created_at.desc()).all()]
+
+@router.get("/dashboard/summary")
+def dashboard(db:Session=Depends(get_db)):
+    reports=db.query(Report).all(); scores=db.query(Score).all()
+    return {"total_reports":len(reports),"active_areas":len(set(r.site_id for r in reports)),"high_priority":sum(1 for s in scores if s.level=="High"),"verified_reports":sum(1 for r in reports if r.verification and r.verification.status=="verified"),"needs_review":sum(1 for r in reports if r.status=="needs_review"),"priority_distribution":{k:sum(1 for s in scores if s.level==k) for k in ["High","Medium","Low","Needs Review"]}}
+
+@router.get("/dashboard/trends")
+def trends(db:Session=Depends(get_db)):
+    reports=db.query(Report).order_by(Report.created_at).all()
+    buckets={}
+    for r in reports:
+        key=r.created_at.date().isoformat(); buckets[key]=buckets.get(key,0)+1
+    return [{"date":k,"reports":v} for k,v in sorted(buckets.items())]
+
+@router.get("/verification")
+def verification_queue(status:str|None=None,db:Session=Depends(get_db),_:None=Depends(require_reviewer)):
+    q=db.query(Verification).order_by(Verification.id.desc())
+    if status: q=q.filter(Verification.status==status)
+    return [{"id":v.id,"report":report_json(db,v.report),"reviewer":v.reviewer,"status":v.status,"notes":v.notes,"verified_at":v.verified_at} for v in q.all()]
+
+@router.patch("/verification/{verification_id}")
+def update_verification(verification_id:int,payload:VerificationUpdate,db:Session=Depends(get_db),_:None=Depends(require_reviewer)):
+    v=db.get(Verification,verification_id)
+    if not v: raise HTTPException(404,"Verification record not found")
+    if payload.status not in {"needs_review","under_review","verified"}: raise HTTPException(400,"Invalid verification status")
+    v.status=payload.status; v.reviewer=payload.reviewer; v.notes=payload.notes; v.verified_at=datetime.now(timezone.utc) if payload.status=="verified" else None
+    v.report.status="verified" if payload.status=="verified" else ("needs_review" if payload.status=="needs_review" else "under_review")
+    db.commit(); return report_json(db,v.report)
+
+@router.get("/agent-runs/{report_id}")
+def agent_runs(report_id:int,db:Session=Depends(get_db)):
+    runs=db.query(AgentRun).filter_by(report_id=report_id).order_by(AgentRun.created_at).all()
+    return [{"id":r.id,"agent_name":r.agent_name,"tool_name":r.tool_name,"status":r.status,"output":json.loads(r.output_json),"created_at":r.created_at} for r in runs]
+

@@ -1,0 +1,14 @@
+import axios from 'axios';
+export const API=import.meta.env.VITE_API_URL||'http://localhost:8000/api';
+export const api=axios.create({baseURL:API});
+const reviewerToken=import.meta.env.VITE_REVIEWER_TOKEN;
+api.interceptors.request.use(config=>{if(reviewerToken)config.headers['X-Reviewer-Token']=reviewerToken;return config;});
+export const imageUrl=(path)=>path?.startsWith('http')?path:`${API.replace(/\/api$/,'')}${path||''}`;
+export const getDashboard=()=>api.get('/dashboard/summary').then(r=>r.data);
+export const getTrends=()=>api.get('/dashboard/trends').then(r=>r.data);
+export const getReports=(status)=>api.get('/reports',{params:status?{status}:undefined}).then(r=>r.data);
+export const getReport=(id)=>api.get(`/reports/${id}`).then(r=>r.data);
+export const getRuns=(id)=>api.get(`/agent-runs/${id}`).then(r=>r.data);
+export const getMap=()=>api.get('/map/observations').then(r=>r.data);
+export const getSites=()=>api.get('/sites').then(r=>r.data);
+export const getSite=(id)=>api.get(`/sites/${id}`).then(r=>r.data);
