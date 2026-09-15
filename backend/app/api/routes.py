@@ -24,7 +24,101 @@ def report_json(db,r):
     rec=db.query(Recommendation).filter_by(report_id=r.id).order_by(Recommendation.created_at.desc()).first()
     ai=db.query(AIResult).filter_by(report_id=r.id).order_by(AIResult.created_at.desc()).first()
     v=db.query(Verification).filter_by(report_id=r.id).first()
-    return {"id":r.id,"site_id":r.site_id,"site_name":r.site.name,"description":r.description,"latitude":r.latitude,"longitude":r.longitude,"observation_type":r.observation_type,"depth_m":r.depth_m,"status":r.status,"created_at":r.created_at,"image":({"url":f"/api/images/{r.image.id}","filename":r.image.original_name,"status":r.image.analysis_status} if r.image else None),"ai":({"indicators":json.loads(ai.indicators_json),"confidence":ai.confidence,"summary":ai.summary,"limitations":ai.limitations,"needs_review":ai.needs_review} if ai else None),"priority":({"score":score.score,"level":score.level,"reasons":json.loads(score.reasons_json)} if score else None),"recommendation":({"action":rec.action,"rationale":rec.rationale} if rec else None),"verification":({"status":v.status,"reviewer":v.reviewer,"notes":v.notes,"verified_at":v.verified_at} if v else None)}
+
+    sensor_readings=db.query(SensorReading).filter_by(site_id=r.site_id).order_by(SensorReading.timestamp.desc()).limit(20).all()
+    observations=db.query(Observation).filter_by(site_id=r.site_id).order_by(Observation.created_at.desc()).limit(20).all()
+    community_reports=db.query(Report).filter_by(site_id=r.site_id).order_by(Report.created_at.desc()).all()
+
+    evidence={
+        "image":{
+            "available":bool(r.image),
+            "status":r.image.analysis_status if r.image else None
+        },
+        "sensors":{
+            "available":bool(sensor_readings),
+            "count":len(sensor_readings),
+            "sources":sorted(set(x.source for x in sensor_readings)),
+            "readings":[
+                {
+                    "sensor_type":x.sensor_type,
+                    "value":x.value,
+                    "unit":x.unit,
+                    "source":x.source,
+                    "timestamp":x.timestamp
+                }
+                for x in sensor_readings
+            ]
+        },
+        "historical":{
+            "available":bool(observations),
+            "count":len(observations)
+        },
+        "community":{
+            "available":len(community_reports)>1,
+            "count":max(0,len(community_reports)-1)
+        },
+        "location":{
+            "available":r.latitude is not None and r.longitude is not None,
+            "latitude":r.latitude,
+            "longitude":r.longitude
+        }
+    }
+
+    return {
+        "id":r.id,
+        "site_id":r.site_id,
+        "site_name":r.site.name,
+        "description":r.description,
+        "latitude":r.latitude,
+        "longitude":r.longitude,
+        "observation_type":r.observation_type,
+        "depth_m":r.depth_m,
+        "status":r.status,
+        "created_at":r.created_at,
+        "image":(
+            {
+                "url":f"/api/images/{r.image.id}",
+                "filename":r.image.original_name,
+                "status":r.image.analysis_status
+            }
+            if r.image else None
+        ),
+        "ai":(
+            {
+                "indicators":json.loads(ai.indicators_json),
+                "confidence":ai.confidence,
+                "summary":ai.summary,
+                "limitations":ai.limitations,
+                "needs_review":ai.needs_review
+            }
+            if ai else None
+        ),
+        "priority":(
+            {
+                "score":score.score,
+                "level":score.level,
+                "reasons":json.loads(score.reasons_json)
+            }
+            if score else None
+        ),
+        "recommendation":(
+            {
+                "action":rec.action,
+                "rationale":rec.rationale
+            }
+            if rec else None
+        ),
+        "verification":(
+            {
+                "status":v.status,
+                "reviewer":v.reviewer,
+                "notes":v.notes,
+                "verified_at":v.verified_at
+            }
+            if v else None
+        ),
+        "evidence":evidence
+    }
 
 @router.get("/health")
 def health(): return {"status":"ok","service":"MarineGuard AI"}
@@ -130,7 +224,7 @@ def simulate_sensor(payload:SensorSimulate,db:Session=Depends(get_db)):
     if not s: raise HTTPException(404,"Site not found")
     now=datetime.now(timezone.utc)
     readings=[]
-    specs=[("temperature",34.0 if payload.anomaly else 29.2,"آ°C"),("salinity",40.5 if payload.anomaly else 38.1,"PSU"),("turbidity",24.0 if payload.anomaly else 8.4,"NTU")]
+    specs=[("temperature",34.0 if payload.anomaly else 29.2,"°C"),("salinity",40.5 if payload.anomaly else 38.1,"PSU"),("turbidity",24.0 if payload.anomaly else 8.4,"NTU")]
     for typ,val,unit in specs:
         val += random.uniform(-0.5,0.5)
         rec=SensorReading(site_id=s.id,source="simulated",sensor_type=typ,value=round(val,2),unit=unit,timestamp=now,latitude=s.latitude,longitude=s.longitude); db.add(rec); readings.append(rec)
@@ -179,4 +273,5 @@ def update_verification(verification_id:int,payload:VerificationUpdate,db:Sessio
 def agent_runs(report_id:int,db:Session=Depends(get_db)):
     runs=db.query(AgentRun).filter_by(report_id=report_id).order_by(AgentRun.created_at).all()
     return [{"id":r.id,"agent_name":r.agent_name,"tool_name":r.tool_name,"status":r.status,"output":json.loads(r.output_json),"created_at":r.created_at} for r in runs]
+
 
