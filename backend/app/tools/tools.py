@@ -212,6 +212,36 @@ def create_recommendation(evidence, priority):
         return {"action":"Collect Additional Observations","rationale":"Continue monitoring and add observations or sensor evidence to improve confidence."}
     return {"action":"Continue Monitoring","rationale":"Current evidence does not indicate a strong priority signal; continue community monitoring."}
 
+def request_additional_evidence(evidence, evidence_gate):
+    if evidence_gate.get("sufficient"):
+        return {
+            "status": "evidence_sufficient",
+            "requested": [],
+            "reason": evidence_gate.get(
+                "reason",
+                "Available evidence is sufficient for the current workflow.",
+            ),
+        }
+
+    requested = []
+
+    visual = evidence.get("visual", {})
+    visual_indicators = visual.get("visual_indicators", [])
+    visual_confidence = float(visual.get("confidence", 0) or 0)
+    needs_visual_review = visual.get("needs_review") or not visual_indicators
+
+    if needs_visual_review or visual_confidence < 0.45:
+        requested.append("additional_image_or_visual_review")
+
+    return {
+        "status": "additional_evidence_requested",
+        "requested": requested,
+        "reason": evidence_gate.get(
+            "reason",
+            "Additional evidence is needed before stronger prioritization.",
+        ),
+    }
+
 def request_human_review(db: Session, report_id: int):
     v=db.query(Verification).filter_by(report_id=report_id).first()
     if not v:

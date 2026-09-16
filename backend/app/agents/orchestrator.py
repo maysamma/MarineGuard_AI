@@ -18,6 +18,7 @@ from app.tools.tools import (
     get_map_context,
     calculate_priority,
     create_recommendation,
+    request_additional_evidence,
     request_human_review,
 )
 from app.services.ai_service import analyze_image as vision_model
@@ -26,6 +27,77 @@ from app.services.ai_service import analyze_image as vision_model
 class Orchestrator:
     def __init__(self, db: Session):
         self.db = db
+
+    def _assess_evidence_sufficiency(self, evidence):
+        visual = evidence.get("visual", {})
+        observation_type = evidence.get("observation_type", "general")
+
+        visual_indicators = visual.get("visual_indicators", [])
+        visual_confidence = float(visual.get("confidence", 0) or 0)
+        visual_needs_review = bool(visual.get("needs_review", True))
+
+        has_visual = bool(visual_indicators)
+        has_sensor = bool(evidence.get("sensor"))
+        has_history = evidence.get("historical_count", 0) > 0
+        has_community = evidence.get("community_count", 0) > 0
+
+        available_signals = sum([
+            has_visual,
+            has_sensor,
+            has_history,
+            has_community,
+        ])
+
+        if visual_needs_review or visual_confidence < 0.45:
+            return {
+                "sufficient": False,
+                "reason": "Visual evidence is insufficient or uncertain.",
+                "available_signals": available_signals,
+                "observation_type": observation_type,
+            }
+
+        if observation_type == "marine_debris":
+            return {
+                "sufficient": True,
+                "reason": "Clear visual evidence is sufficient for marine debris observation.",
+                "available_signals": available_signals,
+                "observation_type": observation_type,
+            }
+
+        if observation_type == "water_appearance":
+            return {
+                "sufficient": True,
+                "reason": (
+                    "Clear visual evidence is sufficient for water appearance "
+                    "assessment; it does not establish laboratory water quality."
+                ),
+                "available_signals": available_signals,
+                "observation_type": observation_type,
+            }
+
+        if observation_type == "general":
+            if has_visual and visual_confidence >= 0.75:
+                return {
+                    "sufficient": True,
+                    "reason": "Confident visual evidence is available for the general observation.",
+                    "available_signals": available_signals,
+                    "observation_type": observation_type,
+                }
+
+        if available_signals >= 2:
+            return {
+                "sufficient": True,
+                "reason": "Multiple evidence signals are available.",
+                "available_signals": available_signals,
+                "observation_type": observation_type,
+            }
+
+        return {
+            "sufficient": False,
+            "reason": "Additional evidence is needed before stronger prioritization.",
+            "available_signals": available_signals,
+            "observation_type": observation_type,
+        }
 
     def run(self, report: Report):
 
@@ -42,11 +114,14 @@ class Orchestrator:
             self.db.commit()
 
         evidence = {
+            "report_id": report.id,
+            "observation_type": report.observation_type or "general",
+            "description": report.description or "",
             "location": get_map_context(
                 self.db,
                 report.latitude,
                 report.longitude,
-            )
+            ),
         }
 
         # ---------------------------------------------------------
@@ -245,7 +320,75 @@ class Orchestrator:
             )
 
         # ---------------------------------------------------------
-        # 7. Risk / Priority Agent
+        # 7. Evidence Sufficiency Gate
+        # ---------------------------------------------------------
+
+        evidence_gate = self._assess_evidence_sufficiency(evidence)
+
+        trace(
+            "Orchestrator Agent",
+            "evidence_gate",
+            "completed",
+            evidence_gate,
+        )
+
+        # ---------------------------------------------------------
+        # 7. Evidence Request Decision
+        # ---------------------------------------------------------
+
+        evidence_request = request_additional_evidence(evidence, evidence_gate)
+
+        trace(
+            "Orchestrator Agent",
+            "request_additional_evidence",
+            "completed",
+            evidence_request,
+        )
+
+        evidence["sufficiency"] = evidence_gate
+        evidence["additional_evidence_request"] = evidence_request
+
+        if not evidence_gate["sufficient"]:
+            request_human_review(self.db, report.id)
+            report.status = "needs_review"
+
+            trace(
+                "Verification Agent / Human",
+                "evidence_gate",
+                "completed",
+                {
+                    "status": report.status,
+                    "reason": evidence_gate["reason"],
+                    "additional_evidence": evidence_request["requested"],
+                },
+            )
+
+            self.db.commit()
+
+            return {
+                "priority": {
+                    "score": 0,
+                    "level": "Needs Review",
+                    "reasons": [
+                        evidence_gate["reason"],
+                    ],
+                },
+                "recommendation": {
+                    "type": "Needs Review",
+                    "message": (
+                        "Additional evidence or human/field verification "
+                        "is required before stronger prioritization."
+                    ),
+                },
+                "evidence": evidence,
+                "routing": {
+                    "selected_agents": selected_agents,
+                    "reasons": routing_reasons,
+                },
+            }
+
+        # ---------------------------------------------------------
+        # 8. Risk / Priority Agent
         # ---------------------------------------------------------
 
         priority = calculate_priority(evidence)
