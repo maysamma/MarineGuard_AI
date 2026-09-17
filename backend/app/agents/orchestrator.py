@@ -254,8 +254,32 @@ class Orchestrator:
                 },
             },
         )
-
         # ---------------------------------------------------------
+        # 2.5 Refresh evidence after conditional data retrieval
+        # ---------------------------------------------------------
+
+        evidence["sensor"] = [
+            {
+                "type": s.sensor_type,
+                "value": s.value,
+                "unit": s.unit,
+                "source": s.source,
+            }
+            for s in sensors
+        ]
+
+        turbidity_readings = [
+            s for s in sensors
+            if s.sensor_type == "turbidity"
+        ]
+
+        evidence["sensor_anomaly"] = any(
+            s.value > 18 for s in turbidity_readings
+        )
+
+        evidence["historical_count"] = len(hist)
+        evidence["community_count"] = len(community)
+
         # 3. Vision Agent — only when image exists
         # ---------------------------------------------------------
 
