@@ -14,3 +14,38 @@ def test_needs_review():
 def test_recommendation_high():
     p={"level":"High"}
     assert "Field Verification" in create_recommendation({},p)["action"]
+
+def test_priority_uses_multiple_evidence_sources():
+    evidence = {
+        "visual": {
+            "visual_indicators": [
+                {
+                    "type": "marine_debris",
+                    "status": "detected",
+                    "confidence": 0.9,
+                }
+            ],
+            "confidence": 0.9,
+            "needs_review": False,
+        },
+        "sensor": [
+            {
+                "type": "turbidity",
+                "value": 25,
+                "unit": "NTU",
+                "source": "simulated",
+            }
+        ],
+        "sensor_anomaly": True,
+        "community_count": 4,
+        "historical_count": 4,
+    }
+
+    priority = calculate_priority(evidence)
+
+    assert priority["score"] > 0
+    assert priority["level"] in {"Low", "Medium", "High"}
+    assert any("Visual evidence" in reason for reason in priority["reasons"])
+    assert any("Sensor anomaly" in reason for reason in priority["reasons"])
+    assert any("Repeated community" in reason for reason in priority["reasons"])
+    assert any("Historical observations" in reason for reason in priority["reasons"])
