@@ -1,7 +1,18 @@
-ï»¿import React,{useState}from'react';
+import React,{useState}from'react';
 import{UploadCloud,MapPin,ArrowRight,CheckCircle2,Loader2}from'lucide-react';
+import{MapContainer,TileLayer,Marker,useMapEvents}from'react-leaflet';
 import{api}from'../services/api';
 import{useNavigate}from'react-router-dom';
+
+function LocationPicker({position,onChange}){
+  useMapEvents({
+    click(e){
+      onChange([e.latlng.lat,e.latlng.lng]);
+    }
+  });
+
+  return position?<Marker position={position}/>:null;
+}
 
 export default function Submit(){
   const nav=useNavigate();
@@ -16,6 +27,19 @@ export default function Submit(){
   }),
   [step,setStep]=useState('idle'),
   [error,setError]=useState('');
+
+  const position=[
+    Number(form.latitude),
+    Number(form.longitude)
+  ];
+
+  const onLocationChange=([latitude,longitude])=>{
+    setForm({
+      ...form,
+      latitude:latitude.toFixed(6),
+      longitude:longitude.toFixed(6)
+    });
+  };
 
   const onFile=e=>{
     const f=e.target.files?.[0];
@@ -78,7 +102,7 @@ export default function Submit(){
 
           <div className="panel p-6">
             <div className="text-sm font-bold mb-4">
-              01 Â· Image evidence
+              01 · Image evidence
             </div>
 
             <label className="block aspect-video rounded-2xl border border-dashed border-ocean-500/30 bg-ocean-500/[.03] overflow-hidden cursor-pointer">
@@ -98,7 +122,7 @@ export default function Submit(){
                   </div>
 
                   <div className="text-xs soft mt-2">
-                    JPG, JPEG, PNG, WebP Â· max 10 MB
+                    JPG, JPEG, PNG, WebP · max 10 MB
                   </div>
                 </div>
               }
@@ -113,14 +137,14 @@ export default function Submit(){
 
             {file&&
               <div className="mt-3 text-xs soft">
-                {file.name} Â· ready for analysis
+                {file.name} · ready for analysis
               </div>
             }
           </div>
 
           <div className="panel p-6">
             <div className="text-sm font-bold mb-4">
-              02 Â· Observation context
+              02 · Observation context
             </div>
 
             <div className="space-y-4">
@@ -138,32 +162,67 @@ export default function Submit(){
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <label className="text-xs soft">
+                      Observation location
+                    </label>
 
-                <div>
-                  <label className="text-xs soft">
-                    Latitude
-                  </label>
+                    <div className="text-xs soft mt-1">
+                      Click on the map to select the location.
+                    </div>
+                  </div>
 
-                  <input
-                    value={form.latitude}
-                    onChange={e=>setForm({...form,latitude:e.target.value})}
-                    className="w-full mt-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border)] rounded-xl p-3 outline-none focus:border-ocean-500 transition-colors"
-                  />
+                  <MapPin size={18} className="text-ocean-500"/>
                 </div>
 
-                <div>
-                  <label className="text-xs soft">
-                    Longitude
-                  </label>
+                <div className="mt-3 h-72 rounded-2xl overflow-hidden border border-[var(--border)]">
+                  <MapContainer
+                    center={position}
+                    zoom={10}
+                    scrollWheelZoom
+                    className="h-full w-full"
+                  >
+                    <TileLayer
+                      attribution='&copy; OpenStreetMap contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
 
-                  <input
-                    value={form.longitude}
-                    onChange={e=>setForm({...form,longitude:e.target.value})}
-                    className="w-full mt-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border)] rounded-xl p-3 outline-none focus:border-ocean-500 transition-colors"
-                  />
+                    <LocationPicker
+                      position={position}
+                      onChange={onLocationChange}
+                    />
+                  </MapContainer>
                 </div>
 
+                <div className="grid grid-cols-2 gap-3 mt-3">
+
+                  <div>
+                    <label className="text-xs soft">
+                      Latitude
+                    </label>
+
+                    <input
+                      value={form.latitude}
+                      readOnly
+                      className="w-full mt-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border)] rounded-xl p-3 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs soft">
+                      Longitude
+                    </label>
+
+                    <input
+                      value={form.longitude}
+                      readOnly
+                      className="w-full mt-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border)] rounded-xl p-3 outline-none"
+                    />
+                  </div>
+
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -245,7 +304,7 @@ export default function Submit(){
               :
               <>
                 <Loader2 size={17} className="animate-spin"/>
-                Processingâ€¦
+                Processing…
               </>
             }
           </button>
