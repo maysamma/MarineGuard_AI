@@ -128,9 +128,9 @@ class Orchestrator:
         # 1. Discover available evidence
         # ---------------------------------------------------------
 
-        sensors = get_sensor_data(self.db, report.site_id)
-        hist = get_historical_observations(self.db, report.site_id)
-        community = get_community_reports(self.db, report.site_id)
+        sensors = []
+        hist = []
+        community = []
 
         evidence["sensor"] = [
             {
@@ -161,30 +161,74 @@ class Orchestrator:
         selected_agents = []
         routing_reasons = {}
 
+        # Vision Agent
         if report.image:
             selected_agents.append("Vision Agent")
-            routing_reasons["Vision Agent"] = "Image evidence is available."
-
-        if sensors:
-            selected_agents.append("IoT/Data Agent")
-            routing_reasons["IoT/Data Agent"] = (
-                f"{len(sensors)} sensor readings are available."
+            routing_reasons["Vision Agent"] = (
+                "Image evidence is available."
             )
 
-        if hist:
-            selected_agents.append("Historical/Trend Agent")
-            routing_reasons["Historical/Trend Agent"] = (
-                f"{len(hist)} historical observations are available."
+        # IoT/Data Agent
+        # The Orchestrator decides whether sensor data is needed.
+        if report.observation_type in {
+            "water_appearance",
+            "coral_condition",
+            "general",
+        }:
+            sensors = get_sensor_data(
+                self.db,
+                report.site_id,
             )
 
+            if sensors:
+                selected_agents.append("IoT/Data Agent")
+                routing_reasons["IoT/Data Agent"] = (
+                    f"{len(sensors)} sensor readings are available "
+                    "for this observation type."
+                )
+
+        # Historical/Trend Agent
+        # Historical context is useful when the report can benefit
+        # from trend comparison.
+        if report.observation_type in {
+            "water_appearance",
+            "coral_condition",
+            "general",
+        }:
+            hist = get_historical_observations(
+                self.db,
+                report.site_id,
+            )
+
+            if hist:
+                selected_agents.append("Historical/Trend Agent")
+                routing_reasons["Historical/Trend Agent"] = (
+                    f"{len(hist)} historical observations are available "
+                    "for trend comparison."
+                )
+
+        # Community reports are contextual evidence.
+        # Retrieve them only when the workflow has a visual or
+        # environmental observation that can benefit from community context.
+        if report.image or report.observation_type in {
+            "water_appearance",
+            "coral_condition",
+            "general",
+        }:
+            community = get_community_reports(
+                self.db,
+                report.site_id,
+            )
+
+        # Environmental Agent
         if report.image or community:
             selected_agents.append("Environmental Agent")
             routing_reasons["Environmental Agent"] = (
                 "Environmental context can be interpreted from "
-                "visual and/or community evidence."
+                "available visual and/or community evidence."
             )
 
-        # Risk and recommendation are downstream agents.
+        # Risk and Recommendation are downstream agents.
         selected_agents.append("Risk/Priority Agent")
         routing_reasons["Risk/Priority Agent"] = (
             "Runs after available evidence has been assembled."
