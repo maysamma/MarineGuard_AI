@@ -49,3 +49,24 @@ def test_priority_uses_multiple_evidence_sources():
     assert any("Sensor anomaly" in reason for reason in priority["reasons"])
     assert any("Repeated community" in reason for reason in priority["reasons"])
     assert any("Historical observations" in reason for reason in priority["reasons"])
+
+def test_additional_evidence_requested_when_visual_is_insufficient():
+    from app.tools.tools import request_additional_evidence
+
+    evidence = {
+        "visual": {
+            "visual_indicators": [],
+            "confidence": 0.2,
+            "needs_review": True,
+        }
+    }
+
+    evidence_gate = {
+        "sufficient": False,
+        "reason": "Visual evidence is insufficient or uncertain.",
+    }
+
+    result = request_additional_evidence(evidence, evidence_gate)
+
+    assert result["status"] == "additional_evidence_requested"
+    assert "additional_image_or_visual_review" in result["requested"]
