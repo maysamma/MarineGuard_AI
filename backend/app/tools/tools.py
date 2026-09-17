@@ -97,8 +97,17 @@ def calculate_priority(evidence):
             "unusual_object",
         }
 
+        severity_multiplier = 1.0
+
+        if "present_high_concentration" in status:
+            severity_multiplier = 2.5
+        elif any(term in status for term in ("widespread", "significant", "accumulation")):
+            severity_multiplier = 1.5
+        elif "possible" in status:
+            severity_multiplier = 0.6
+
         if not status_is_negative and (status_is_positive or type_is_concerning):
-            visual_points += confidence * 12
+            visual_points += confidence * 12 * severity_multiplier
 
     visual_weight = min(35, visual_points)
 
@@ -250,10 +259,4 @@ def request_human_review(db: Session, report_id: int):
     else:
         v.status="needs_review"
     db.commit(); return v
-
-
-
-
-
-
 
