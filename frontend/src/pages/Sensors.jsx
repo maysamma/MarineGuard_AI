@@ -1,8 +1,10 @@
-﻿import React,{useEffect,useState}from'react';
+import React,{useEffect,useState}from'react';
 import{api,getSites}from'../services/api';
 import{Radio,TriangleAlert,CheckCircle2}from'lucide-react';
+import{useLanguage}from'../language';
 
 export default function Sensors(){
+  const{t}=useLanguage();
   const[sites,setSites]=useState([]),
   [readings,setReadings]=useState([]),
   [site,setSite]=useState(''),
@@ -25,7 +27,7 @@ export default function Sensors(){
       site_id:Number(site),
       anomaly
     }).then(r=>{
-      setMsg(`Generated ${r.data.readings.length} simulated readings.`);
+      setMsg(`${t.sensors.generatedReadings} ${r.data.readings.length}`);
       load();
     });
   };
@@ -34,9 +36,9 @@ export default function Sensors(){
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
 
       <div className="px-5 md:px-8 py-5 border-b border-[var(--border)]">
-        <div className="text-xl font-black">Sensor simulator</div>
+        <div className="text-xl font-black">{t.sensors.title}</div>
         <div className="text-sm soft mt-1">
-          IoT-ready ingestion without pretending physical sensors are connected.
+          {t.sensors.subtitle}
         </div>
       </div>
 
@@ -48,9 +50,9 @@ export default function Sensors(){
             <Radio className="text-ocean-500"/>
 
             <div>
-              <h2 className="font-bold">SIMULATED SENSOR DATA</h2>
+              <h2 className="font-bold">{t.sensors.simulatedSensorData}</h2>
               <p className="text-xs soft mt-1">
-                Every generated reading is stored with source = simulated.
+                {t.sensors.storedSource}
               </p>
             </div>
           </div>
@@ -76,14 +78,14 @@ export default function Sensors(){
                 onChange={e=>setAnomaly(e.target.checked)}
                 className="accent-ocean-500"
               />
-              Simulate anomaly
+              {t.sensors.simulateAnomaly}
             </label>
 
             <button
               onClick={simulate}
               className="btn btn-primary"
             >
-              Generate readings
+              {t.sensors.generateReadings}
             </button>
 
           </div>
@@ -100,7 +102,7 @@ export default function Sensors(){
         <div className="panel overflow-hidden">
 
           <div className="p-5 font-bold">
-            Recent readings
+            {t.sensors.recentReadings}
           </div>
 
           <div className="overflow-x-auto">
@@ -109,11 +111,11 @@ export default function Sensors(){
 
               <thead className="text-xs soft bg-black/[.025] dark:bg-white/[.025]">
                 <tr>
-                  <th className="text-left p-4">Site</th>
-                  <th className="text-left p-4">Sensor</th>
-                  <th className="text-left p-4">Value</th>
-                  <th className="text-left p-4">Source</th>
-                  <th className="text-left p-4">Time</th>
+                  <th className="text-left p-4">{t.sensors.site}</th>
+                  <th className="text-left p-4">{t.sensors.sensor}</th>
+                  <th className="text-left p-4">{t.sensors.value}</th>
+                  <th className="text-left p-4">{t.sensors.source}</th>
+                  <th className="text-left p-4">{t.sensors.time}</th>
                 </tr>
               </thead>
 
@@ -152,7 +154,7 @@ export default function Sensors(){
 
             {!readings.length&&
               <div className="p-10 text-center soft">
-                No readings yet.
+                {t.sensors.noReadings}
               </div>
             }
 
@@ -161,7 +163,7 @@ export default function Sensors(){
 
         <div className="p-4 rounded-xl bg-amber-400/10 border border-amber-400/20 text-xs text-amber-700 dark:text-amber-100 flex gap-2">
           <TriangleAlert size={15}/>
-          Simulated values are for workflow demonstration and must not be represented as measurements from real sensors.
+          {t.sensors.warning}
         </div>
 
       </div>

@@ -1,12 +1,14 @@
-﻿import React from 'react';
+import React from 'react';
 import{CheckCircle2,Loader2,AlertCircle}from'lucide-react';
+import{useLanguage}from'../language';
 
 export default function AgentTrace({runs=[]}){
+  const{t}=useLanguage();
   return(
     <div className="space-y-2">
       {runs.length===0?(
         <div className="text-sm soft p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)]">
-          Run an analysis to see the live evidence trail.
+          {t.agentTrace.runAnalysis}
         </div>
       ):(
         runs.map(r=>(
@@ -30,7 +32,7 @@ export default function AgentTrace({runs=[]}){
               </div>
 
               <div className="text-xs soft mt-1">
-                Tool: {r.tool_name||'—'}
+                {t.agentTrace.tool}: {r.tool_name||'-'}
               </div>
             </div>
           </div>

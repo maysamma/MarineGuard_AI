@@ -1,11 +1,13 @@
-﻿import React,{useEffect,useState}from'react';
+import React,{useEffect,useState}from'react';
 import{useParams,Link}from'react-router-dom';
 import{getReport,getRuns,imageUrl}from'../services/api';
 import{ArrowLeft,ShieldAlert,Database,Radio,History,Users,MapPin,CheckCircle2}from'lucide-react';
 import PriorityBadge from'../components/PriorityBadge';
 import AgentTrace from'../components/AgentTrace';
+import{useLanguage}from'../language';
 
 export default function Result(){
+  const{t}=useLanguage();
   const{id}=useParams();
   const[r,setR]=useState(null),[runs,setRuns]=useState([]);
 
@@ -15,7 +17,7 @@ export default function Result(){
   },[id]);
 
   if(!r)
-    return <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] p-10 soft">Loading case...</div>;
+    return <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] p-10 soft">{t.result.loading}</div>;
 
   const evidence=r.evidence||{};
   const imageEvidence=evidence.image||{};
@@ -27,38 +29,38 @@ export default function Result(){
   const evidenceItems=[
     {
       icon:Database,
-      label:'Image evidence',
+      label:t.result.imageEvidence,
       value:imageEvidence.available
-        ?`Available${imageEvidence.status?` · ${imageEvidence.status}`:''}`
-        :'Missing'
+        ?`${t.result.available}${imageEvidence.status?` · ${imageEvidence.status}`:''}`
+        :t.result.missing
     },
     {
       icon:Radio,
-      label:'Sensor evidence',
+      label:t.result.sensorEvidence,
       value:sensorEvidence.available
-        ?`${sensorEvidence.count} readings · ${sensorEvidence.sources?.join(', ')||'Unknown source'}`
-        :'No readings'
+        ?`${sensorEvidence.count} ${t.result.readings} · ${sensorEvidence.sources?.join(',')||t.result.unknownSource}`
+        :t.result.noReadings
     },
     {
       icon:MapPin,
-      label:'Location',
+      label:t.result.location,
       value:locationEvidence.available
         ?`${Number(locationEvidence.latitude).toFixed(4)}, ${Number(locationEvidence.longitude).toFixed(4)}`
-        :'Missing'
+        :t.result.missing
     },
     {
       icon:History,
-      label:'Historical evidence',
+      label:t.result.historicalEvidence,
       value:historicalEvidence.available
-        ?`${historicalEvidence.count} observations`
-        :'No historical observations'
+        ?`${historicalEvidence.count} ${t.result.observations}`
+        :t.result.noHistoricalObservations
     },
     {
       icon:Users,
-      label:'Community evidence',
+      label:t.result.communityEvidence,
       value:communityEvidence.available
-        ?`${communityEvidence.count} additional reports`
-        :'No additional community reports'
+        ?`${communityEvidence.count} ${t.result.additionalReports}`
+        :t.result.noAdditionalCommunityReports
     }
   ];
 
@@ -70,7 +72,7 @@ export default function Result(){
         className="text-sm soft flex items-center gap-2 mb-5 hover:text-ocean-500 transition-colors"
       >
         <ArrowLeft size={15}/>
-        Back to reports
+        {t.result.backToReports}
       </Link>
 
       <div className="grid xl:grid-cols-[1.2fr_.8fr] gap-6">
@@ -84,11 +86,11 @@ export default function Result(){
                 <img
                   src={imageUrl(r.image.url)}
                   className="w-full h-full object-cover"
-                  alt={r.site_name||'Marine observation'}
+                  alt={r.site_name||t.result.marineObservation}
                 />
                 :
                 <div className="h-full flex items-center justify-center soft">
-                  No image evidence
+                  {t.result.noImageEvidence}
                 </div>
               }
             </div>
@@ -99,7 +101,7 @@ export default function Result(){
 
                 <div>
                   <div className="text-xs soft uppercase tracking-wider">
-                    Observation #{r.id}
+                    {t.result.observation} #{r.id}
                   </div>
 
                   <h1 className="text-2xl font-black mt-1">
@@ -119,7 +121,7 @@ export default function Result(){
 
                 <div className="p-3 rounded-xl bg-black/[.03] dark:bg-white/[.03] border border-[var(--border)]">
                   <MapPin size={15} className="text-ocean-500"/>
-                  <div className="text-xs soft mt-2">Location</div>
+                  <div className="text-xs soft mt-2">{t.result.location}</div>
                   <div className="text-sm font-semibold mt-1">
                     {r.latitude.toFixed(4)}, {r.longitude.toFixed(4)}
                   </div>
@@ -127,17 +129,17 @@ export default function Result(){
 
                 <div className="p-3 rounded-xl bg-black/[.03] dark:bg-white/[.03] border border-[var(--border)]">
                   <Users size={15} className="text-ocean-500"/>
-                  <div className="text-xs soft mt-2">Community</div>
+                  <div className="text-xs soft mt-2">{t.result.community}</div>
                   <div className="text-sm font-semibold mt-1">
-                    {communityEvidence.count||0} additional reports
+                    {communityEvidence.count||0} {t.result.additionalReports}
                   </div>
                 </div>
 
                 <div className="p-3 rounded-xl bg-black/[.03] dark:bg-white/[.03] border border-[var(--border)]">
                   <History size={15} className="text-ocean-500"/>
-                  <div className="text-xs soft mt-2">History</div>
+                  <div className="text-xs soft mt-2">{t.result.history}</div>
                   <div className="text-sm font-semibold mt-1">
-                    {historicalEvidence.count||0} observations
+                    {historicalEvidence.count||0} {t.result.observations}
                   </div>
                 </div>
 
@@ -150,7 +152,7 @@ export default function Result(){
 
             <div className="flex items-center gap-2">
               <ShieldAlert className="text-ocean-500"/>
-              <h2 className="font-bold">AI visual findings</h2>
+              <h2 className="font-bold">{t.result.aiVisualFindings}</h2>
             </div>
 
             {r.ai?
@@ -174,30 +176,30 @@ export default function Result(){
                         </div>
 
                         <div className="text-xs soft mt-2">
-                          {i.explanation||`Status: ${i.status}`}
+                          {i.explanation||`${t.result.status}: ${i.status}`}
                         </div>
                       </div>
                     )
                     :
                     <div className="p-4 rounded-xl bg-violet-400/10 border border-violet-400/20 text-sm">
-                      No reliable visual indicator was produced.
+                      {t.result.reliableIndicatorMissing}
                     </div>
                   }
 
                 </div>
 
                 <div className="mt-4 text-sm">
-                  <span className="font-bold">Confidence:</span>{' '}
+                  <span className="font-bold">{t.result.confidence}:</span>{' '}
                   {Math.round(r.ai.confidence*100)}% · {r.ai.summary}
                 </div>
 
                 <div className="mt-3 p-4 rounded-xl bg-amber-400/10 border border-amber-400/20 text-xs text-amber-800 dark:text-amber-100">
-                  Limitation: {r.ai.limitations}
+                  {t.result.limitation}: {r.ai.limitations}
                 </div>
               </>
               :
               <div className="soft text-sm mt-5">
-                Analysis not available.
+                {t.result.analysisNotAvailable}
               </div>
             }
 
@@ -210,7 +212,7 @@ export default function Result(){
           <div className="panel p-6">
 
             <h2 className="font-bold">
-              Priority assessment
+              {t.result.priorityAssessment}
             </h2>
 
             <div className="flex items-end gap-3 mt-5">
@@ -219,7 +221,7 @@ export default function Result(){
               </div>
 
               <div className="text-sm soft mb-2">
-                / 100 internal operational index
+                {t.result.internalOperationalIndex}
               </div>
             </div>
 
@@ -235,7 +237,7 @@ export default function Result(){
             </div>
 
             <div className="mt-5 text-xs soft">
-              This score is for monitoring prioritization only; it is not an official environmental threshold.
+              {t.result.priorityDisclaimer}
             </div>
 
           </div>
@@ -243,7 +245,7 @@ export default function Result(){
           <div className="panel p-6">
 
             <h2 className="font-bold">
-              Evidence package
+              {t.result.evidencePackage}
             </h2>
 
             <div className="mt-4 space-y-2">
@@ -273,11 +275,11 @@ export default function Result(){
           <div className="panel p-6">
 
             <h2 className="font-bold">
-              Recommendation
+              {t.result.recommendation}
             </h2>
 
             <div className="text-xl font-black mt-4">
-              {r.recommendation?.action||'Needs Review'}
+              {r.recommendation?.action||t.result.needsReview}
             </div>
 
             <p className="text-sm soft mt-2 leading-relaxed">
@@ -289,7 +291,7 @@ export default function Result(){
           <div className="panel p-6">
 
             <h2 className="font-bold mb-4">
-              Agent execution trace
+              {t.result.agentExecutionTrace}
             </h2>
 
             <AgentTrace runs={runs}/>

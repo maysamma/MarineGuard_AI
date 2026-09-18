@@ -1,5 +1,6 @@
-﻿import React from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../language';
 import {
   ArrowRight,
   Map,
@@ -12,6 +13,8 @@ import {
 } from 'lucide-react';
 
 export default function Home() {
+  const { t } = useLanguage();
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
 
@@ -43,35 +46,31 @@ export default function Home() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-ocean-500/10 border border-ocean-500/20 text-ocean-600 dark:text-ocean-100 text-xs font-bold mb-6">
               <Waves size={14} />
-              Tanmiyathon 2026 · Marine Monitoring
+              {t.home.badge}
             </div>
 
             <h1 className="text-5xl md:text-7xl font-black tracking-[-.04em] leading-[.95]">
-              Community intelligence for{' '}
-              <span className="text-ocean-500">healthier seas.</span>
+              {t.home.title}{' '}
+              <span className="text-ocean-500">{t.home.titleAccent}</span>
             </h1>
 
             <p className="mt-7 text-lg md:text-xl soft max-w-xl leading-relaxed">
-              MarineGuard AI turns community observations, marine imagery,
-              sensor-ready data, and geospatial history into evidence-based
-              priorities for monitoring and field verification.
+              {t.home.description}
             </p>
 
             <div className="flex flex-wrap gap-3 mt-8">
               <Link className="btn btn-primary" to="/submit">
-                Analyze a marine site <ArrowRight size={17} />
+                {t.home.analyze} <ArrowRight size={17} />
               </Link>
 
               <Link className="btn btn-ghost" to="/map">
                 <Map size={17} />
-                Explore GIS map
+                {t.home.explore}
               </Link>
             </div>
 
             <div className="mt-8 text-xs soft max-w-xl">
-              Visual AI is an evidence signal, not a diagnosis. Priority is an
-              internal operational index. Official decisions require appropriate
-              approved data and verification.
+              {t.home.disclaimer}
             </div>
           </div>
 
@@ -90,11 +89,11 @@ export default function Home() {
                     </div>
 
                     <div className="text-2xl font-black">
-                      Observe → Verify
+                      {t.home.observeVerify}
                     </div>
 
                     <div className="soft mt-2">
-                      People + AI + Sensors + History + GIS
+                      {t.home.ecosystem}
                     </div>
                   </div>
                 </div>
@@ -107,12 +106,12 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-6 pt-16 pb-20">
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
-            [BrainCircuit, 'AI Analysis', 'Structured visual indicators, confidence, and limitations.'],
-            [Radio, 'Sensor Intelligence', 'Simulator-ready marine measurements with transparent source labels.'],
-            [History, 'Environmental Trends', 'Site history, repeated observations, and temporal context.'],
-            [Map, 'GIS Prioritization', 'Interactive map that shows where attention is needed.'],
-            [Users, 'Community Science', 'Turn scattered observations into a shared evidence layer.'],
-            [ShieldCheck, 'Human Verification', 'Needs Review → Under Review → Verified.'],
+            [BrainCircuit, t.home.features.ai, t.home.features.aiDesc],
+            [Radio, t.home.features.sensors, t.home.features.sensorsDesc],
+            [History, t.home.features.trends, t.home.features.trendsDesc],
+            [Map, t.home.features.gis, t.home.features.gisDesc],
+            [Users, t.home.features.community, t.home.features.communityDesc],
+            [ShieldCheck, t.home.features.verification, t.home.features.verificationDesc],
           ].map(([Icon, t, d]) => (
             <div key={t} className="panel p-6">
               <div className="h-10 w-10 rounded-xl bg-ocean-500/10 text-ocean-500 flex items-center justify-center">

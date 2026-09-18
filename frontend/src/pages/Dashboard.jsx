@@ -1,4 +1,4 @@
-﻿import React,{useEffect,useState}from'react';
+import React,{useEffect,useState}from'react';
 import{BarChart3,MapPinned,ShieldCheck,AlertTriangle}from'lucide-react';
 import{getDashboard,getTrends,getReports}from'../services/api';
 import Topbar from'../components/Topbar';
@@ -6,8 +6,10 @@ import StatCard from'../components/StatCard';
 import PriorityBadge from'../components/PriorityBadge';
 import{LineChart,Line,XAxis,YAxis,Tooltip,ResponsiveContainer,BarChart,Bar}from'recharts';
 import{Link}from'react-router-dom';
+import{useLanguage}from'../language';
 
 export default function Dashboard(){
+  const{t}=useLanguage();
   const[d,setD]=useState(null),
   [tr,setTr]=useState([]),
   [reports,setReports]=useState([]);
@@ -27,8 +29,8 @@ export default function Dashboard(){
   return(
     <>
       <Topbar
-        title="Marine intelligence dashboard"
-        subtitle="A live view of observations, evidence, priorities, and verification."
+        title={t.dashboard.title}
+        subtitle={t.dashboard.subtitle}
       />
 
       <div className="p-5 md:p-8 max-w-[1500px] mx-auto space-y-6">
@@ -36,26 +38,26 @@ export default function Dashboard(){
         {d&&
           <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
             <StatCard
-              label="Total reports"
+              label={t.dashboard.totalReports}
               value={d.total_reports}
               icon={BarChart3}
             />
 
             <StatCard
-              label="Active areas"
+              label={t.dashboard.activeAreas}
               value={d.active_areas}
               icon={MapPinned}
             />
 
             <StatCard
-              label="High priority"
+              label={t.dashboard.highPriority}
               value={d.high_priority}
               icon={AlertTriangle}
               accent="text-rose-300"
             />
 
             <StatCard
-              label="Verified"
+              label={t.dashboard.verified}
               value={d.verified_reports}
               icon={ShieldCheck}
               accent="text-emerald-300"
@@ -71,11 +73,11 @@ export default function Dashboard(){
 
               <div>
                 <h2 className="font-bold">
-                  Observation activity
+                  {t.dashboard.observationActivity}
                 </h2>
 
                 <p className="text-xs soft mt-1">
-                  Records stored in the MarineGuard database.
+                  {t.dashboard.observationActivityDesc}
                 </p>
               </div>
 
@@ -125,7 +127,7 @@ export default function Dashboard(){
                 </ResponsiveContainer>
                 :
                 <div className="h-full flex items-center justify-center soft text-sm">
-                  No observation history yet.
+                  {t.dashboard.noHistory}
                 </div>
               }
 
@@ -135,7 +137,7 @@ export default function Dashboard(){
           <div className="panel p-6">
 
             <h2 className="font-bold">
-              Priority distribution
+              {t.dashboard.priorityDistribution}
             </h2>
 
             <div className="h-72 mt-6">
@@ -197,11 +199,11 @@ export default function Dashboard(){
 
             <div>
               <h2 className="font-bold">
-                Recent observations
+                {t.dashboard.recentObservations}
               </h2>
 
               <p className="text-xs soft mt-1">
-                Latest cases and their current decision state.
+                {t.dashboard.recentObservationsDesc}
               </p>
             </div>
 
@@ -209,7 +211,7 @@ export default function Dashboard(){
               to="/reports"
               className="text-sm text-ocean-500 font-bold"
             >
-              View all →
+              {t.dashboard.viewAll}
             </Link>
 
           </div>
@@ -221,21 +223,13 @@ export default function Dashboard(){
               <thead className="bg-black/[.025] dark:bg-white/[.025] text-xs soft">
 
                 <tr>
-                  <th className="text-left p-4">
-                    Site
-                  </th>
+                  <th className="text-left p-4">{t.dashboard.site}</th>
 
-                  <th className="text-left p-4">
-                    Observation
-                  </th>
+                  <th className="text-left p-4">{t.dashboard.observation}</th>
 
-                  <th className="text-left p-4">
-                    Priority
-                  </th>
+                  <th className="text-left p-4">{t.dashboard.priority}</th>
 
-                  <th className="text-left p-4">
-                    Status
-                  </th>
+                  <th className="text-left p-4">{t.dashboard.status}</th>
                 </tr>
 
               </thead>
@@ -275,7 +269,7 @@ export default function Dashboard(){
 
             {!reports.length&&
               <div className="p-8 text-center soft text-sm">
-                No observations yet. Submit the first community observation.
+                {t.dashboard.noObservations}
               </div>
             }
 

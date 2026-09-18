@@ -1,9 +1,11 @@
-﻿import React,{useEffect,useState}from'react';
+import React,{useEffect,useState}from'react';
 import{useParams,Link}from'react-router-dom';
 import{getSite}from'../services/api';
 import{ArrowLeft,MapPin}from'lucide-react';
+import{useLanguage}from'../language';
 
 export default function Site(){
+  const{t}=useLanguage();
   const{id}=useParams();
   const[s,setS]=useState(null);
 
@@ -14,7 +16,7 @@ export default function Site(){
   if(!s)
     return(
       <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] p-10 soft">
-        Loading site...
+        {t.site.loading}
       </div>
     );
 
@@ -38,7 +40,7 @@ export default function Site(){
           className="text-sm soft flex items-center gap-2 mb-5 hover:text-ocean-500 transition-colors"
         >
           <ArrowLeft size={15}/>
-          Back to map
+          {t.site.backToMap}
         </Link>
 
         <div className="panel p-6">
@@ -61,7 +63,7 @@ export default function Site(){
 
           <div className="mt-8">
             <h2 className="font-bold">
-              Observation timeline
+              {t.site.observationTimeline}
             </h2>
 
             <div className="mt-4 space-y-3">
@@ -80,13 +82,13 @@ export default function Site(){
                     </div>
 
                     <div className="text-xs soft mt-1">
-                      {x.source||'MarineGuard'}
+                      {x.source||t.site.marineGuard}
                     </div>
 
                     <div className="text-sm soft mt-2">
                       {x.evidence?.description||
                        x.evidence?.note||
-                       'Observation stored in site history.'}
+                       t.site.observationStored}
                     </div>
                   </div>
                 </div>
@@ -95,7 +97,7 @@ export default function Site(){
 
             {!timeline.length&&(
               <div className="mt-4 p-8 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] text-center soft">
-                No observations recorded yet.
+                {t.site.noObservations}
               </div>
             )}
           </div>

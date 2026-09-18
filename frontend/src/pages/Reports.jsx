@@ -1,10 +1,12 @@
-﻿import React,{useEffect,useState}from'react';
+import React,{useEffect,useState}from'react';
 import{getReports,imageUrl}from'../services/api';
 import{Link}from'react-router-dom';
 import PriorityBadge from'../components/PriorityBadge';
 import Topbar from'../components/Topbar';
+import{useLanguage}from'../language';
 
 export default function Reports(){
+  const{t}=useLanguage();
   const[r,setR]=useState([]);
 
   useEffect(()=>{
@@ -14,8 +16,8 @@ export default function Reports(){
   return(
     <>
       <Topbar
-        title="Community observations"
-        subtitle="Every card is backed by a database record — not frontend mock data."
+        title={t.reports.title}
+        subtitle={t.reports.subtitle}
       />
 
       <div className="p-5 md:p-8 max-w-[1400px] mx-auto">
@@ -34,11 +36,11 @@ export default function Reports(){
                   <img
                     src={imageUrl(x.image.url)}
                     className="w-full h-full object-cover"
-                    alt={x.site_name||'Marine observation'}
+                    alt={x.site_name||t.reports.marineObservation}
                   />
                   :
                   <div className="h-full flex items-center justify-center text-xs soft">
-                    No image attached
+                    {t.reports.noImage}
                   </div>
                 }
               </div>
@@ -54,7 +56,7 @@ export default function Reports(){
                 </div>
 
                 <p className="text-sm soft mt-3 line-clamp-3">
-                  {x.description||'No description provided.'}
+                  {x.description||t.reports.noDescription}
                 </p>
 
                 <div className="flex justify-between mt-5 text-xs soft">
@@ -63,7 +65,7 @@ export default function Reports(){
                   </span>
 
                   <span>
-                    {x.status}
+                    {x.status==="analyzed"?t.reports.status.analyzed:x.status==="needs_review"?t.reports.status.needsReview:x.status==="verified"?t.reports.status.verified:x.status}
                   </span>
                 </div>
 
@@ -75,7 +77,7 @@ export default function Reports(){
 
         {!r.length&&
           <div className="panel p-12 text-center soft">
-            No observations yet. Submit the first community observation.
+            {t.reports.noObservations}
           </div>
         }
 

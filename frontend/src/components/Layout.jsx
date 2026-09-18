@@ -1,4 +1,4 @@
-﻿import React,{useState}from'react';
+import React,{useState}from'react';
 import{NavLink,Link,Outlet}from'react-router-dom';
 import{
   Waves,
@@ -11,18 +11,20 @@ import{
   Menu,
   X,
 }from'lucide-react';
+import{useLanguage}from'../language';
 
 const links=[
-  ['/dashboard','Dashboard',LayoutDashboard],
-  ['/submit','New Observation',PlusCircle],
-  ['/map','GIS Map',Map],
-  ['/reports','Reports',Activity],
-  ['/sensors','Sensors',Radio],
-  ['/review','Verification',ShieldCheck],
+  ['/dashboard','dashboard',LayoutDashboard],
+  ['/submit','submit',PlusCircle],
+  ['/map','map',Map],
+  ['/reports','reports',Activity],
+  ['/sensors','sensors',Radio],
+  ['/review','verification',ShieldCheck],
 ];
 
 export default function Layout(){
   const[open,setOpen]=useState(false);
+  const{t}=useLanguage();
 
   return(
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
@@ -64,7 +66,7 @@ export default function Layout(){
               }
             >
               <Icon size={18}/>
-              {label}
+              {t.nav[label]}
             </NavLink>
           ))}
         </nav>
@@ -73,11 +75,11 @@ export default function Layout(){
           <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/[.03] border border-[var(--border)]">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"/>
-              System ready
+              {t.system.ready}
             </div>
 
             <p className="text-xs soft mt-2">
-              Observe → Evidence → Priority → Verify
+              {t.system.flow}
             </p>
           </div>
         </div>

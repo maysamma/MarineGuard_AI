@@ -1,8 +1,11 @@
-﻿import React from 'react';
+import React from 'react';
 import{Link}from'react-router-dom';
 import{Plus,Globe2}from'lucide-react';
+import{useLanguage}from'../language';
 
 export default function Topbar({title,subtitle}){
+  const{t}=useLanguage();
+
   return(
     <header className="px-5 md:px-8 py-5 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--bg-secondary)] transition-colors duration-300">
       <div>
@@ -23,7 +26,7 @@ export default function Topbar({title,subtitle}){
           className="btn btn-ghost text-sm"
         >
           <Globe2 size={16}/>
-          Explore map
+          {t.topbar.exploreMap}
         </Link>
 
         <Link
@@ -31,7 +34,7 @@ export default function Topbar({title,subtitle}){
           className="btn btn-primary text-sm"
         >
           <Plus size={16}/>
-          New observation
+          {t.topbar.newObservation}
         </Link>
       </div>
     </header>

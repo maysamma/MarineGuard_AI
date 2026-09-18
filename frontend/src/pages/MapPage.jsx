@@ -1,7 +1,8 @@
-﻿import React,{useEffect,useState}from'react';
+import React,{useEffect,useState}from'react';
 import{MapContainer,TileLayer,Marker,Popup}from'react-leaflet';
 import L from'leaflet';
 import{getMap}from'../services/api';
+import{useLanguage}from'../language';
 
 const icon=(level)=>L.divIcon({
   className:'',
@@ -16,6 +17,7 @@ const icon=(level)=>L.divIcon({
 });
 
 export default function MapPage(){
+  const{t}=useLanguage();
   const[data,setData]=useState([]),
   [filter,setFilter]=useState('All');
 
@@ -34,11 +36,11 @@ export default function MapPage(){
 
         <div>
           <div className="font-black text-xl">
-            MarineGuard GIS
+            {t.mapPage.title}
           </div>
 
           <div className="text-xs soft">
-            OpenStreetMap · community observation priority
+            {t.mapPage.subtitle}
           </div>
         </div>
 
@@ -53,8 +55,7 @@ export default function MapPage(){
                   : 'bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] border-[var(--border)] hover:bg-black/10 dark:hover:bg-white/10'
               }`}
             >
-              {x}
-            </button>
+              {x==="All"?t.mapPage.all:x==="High"?t.mapPage.high:x==="Medium"?t.mapPage.medium:x==="Low"?t.mapPage.low:t.mapPage.needsReview}</button>
           )}
         </div>
 
@@ -95,7 +96,7 @@ export default function MapPage(){
                   </div>
 
                   <div style={{marginTop:8}}>
-                    <b>Priority:</b> {x.priority} · {x.score}/100
+                    <b>{t.mapPage.priority}:</b> {x.priority} · {x.score}/100
                   </div>
 
                   <div style={{marginTop:10}}>
@@ -103,7 +104,7 @@ export default function MapPage(){
                       href={`/reports/${x.id}`}
                       className="text-ocean-500 font-semibold"
                     >
-                      Open case →
+                      {t.mapPage.openCase}
                     </a>
                   </div>
                 </div>

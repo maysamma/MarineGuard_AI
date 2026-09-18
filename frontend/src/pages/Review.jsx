@@ -1,4 +1,4 @@
-﻿import React,{useEffect,useState}from'react';
+import React,{useEffect,useState}from'react';
 import{api}from'../services/api';
 import{Link}from'react-router-dom';
 import{ShieldCheck,Clock,CheckCircle2}from'lucide-react';
@@ -26,11 +26,11 @@ export default function Review(){
 
       <div className="px-5 md:px-8 py-5 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
         <div className="text-xl font-black">
-          Field Verification Queue
+          {t.review.title}
         </div>
 
         <div className="text-sm soft mt-1">
-          Human-in-the-loop for uncertain or high-priority cases.
+          {t.review.subtitle}
         </div>
       </div>
 
@@ -80,7 +80,7 @@ export default function Review(){
                     className="btn btn-ghost text-xs"
                   >
                     <Clock size={15}/>
-                    Under review
+                    {t.review.underReview}
                   </button>
                 }
 
@@ -90,7 +90,7 @@ export default function Review(){
                     className="btn btn-primary text-xs"
                   >
                     <CheckCircle2 size={15}/>
-                    Verify
+                    {t.review.verify}
                   </button>
                 }
 
@@ -99,7 +99,7 @@ export default function Review(){
             </div>
 
             <div className="mt-4 text-xs soft">
-              Status: {v.status}
+              {t.review.status}: {v.status=== 'under_review' ? t.review.underReview : v.status=== 'verified' ? t.review.verified : v.status}
               {v.notes&&` · ${v.notes}`}
             </div>
 
@@ -108,7 +108,7 @@ export default function Review(){
 
         {!q.length&&
           <div className="panel p-12 text-center soft">
-            No cases currently require review.
+            {t.review.noCases}
           </div>
         }
 

@@ -3,6 +3,7 @@ import{UploadCloud,MapPin,ArrowRight,CheckCircle2,Loader2}from'lucide-react';
 import{MapContainer,TileLayer,Marker,useMapEvents}from'react-leaflet';
 import{api}from'../services/api';
 import{useNavigate}from'react-router-dom';
+import{useLanguage}from'../language';
 
 function LocationPicker({position,onChange}){
   useMapEvents({
@@ -16,6 +17,7 @@ function LocationPicker({position,onChange}){
 
 export default function Submit(){
   const nav=useNavigate();
+  const{t}=useLanguage();
   const[file,setFile]=useState(null),
   [preview,setPreview]=useState(''),
   [form,setForm]=useState({
@@ -90,9 +92,9 @@ export default function Submit(){
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
 
       <div className="px-5 md:px-8 py-6 border-b border-[var(--border)]">
-        <div className="text-xl font-black">Submit a marine observation</div>
+        <div className="text-xl font-black">{t.submit.title}</div>
         <div className="text-sm soft mt-1">
-          Create a real database record, upload evidence, and run the agentic workflow.
+          {t.submit.subtitle}
         </div>
       </div>
 
@@ -102,7 +104,7 @@ export default function Submit(){
 
           <div className="panel p-6">
             <div className="text-sm font-bold mb-4">
-              01 · Image evidence
+              {t.submit.imageEvidence}
             </div>
 
             <label className="block aspect-video rounded-2xl border border-dashed border-ocean-500/30 bg-ocean-500/[.03] overflow-hidden cursor-pointer">
@@ -118,11 +120,11 @@ export default function Submit(){
                   </div>
 
                   <div className="font-bold mt-4">
-                    Drop or select a marine image
+                    {t.submit.dropImage}
                   </div>
 
                   <div className="text-xs soft mt-2">
-                    JPG, JPEG, PNG, WebP · max 10 MB
+                    {t.submit.imageFormats}
                   </div>
                 </div>
               }
@@ -137,27 +139,27 @@ export default function Submit(){
 
             {file&&
               <div className="mt-3 text-xs soft">
-                {file.name} · ready for analysis
+                {file.name} {t.submit.readyForAnalysis}
               </div>
             }
           </div>
 
           <div className="panel p-6">
             <div className="text-sm font-bold mb-4">
-              02 · Observation context
+              {t.submit.observationContext}
             </div>
 
             <div className="space-y-4">
 
               <div>
                 <label className="text-xs soft">
-                  Description
+                  {t.submit.description}
                 </label>
 
                 <textarea
                   value={form.description}
                   onChange={e=>setForm({...form,description:e.target.value})}
-                  placeholder="What did you observe?"
+                  placeholder={t.submit.descriptionPlaceholder}
                   className="w-full mt-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border)] rounded-xl p-3 min-h-28 outline-none focus:border-ocean-500 placeholder:text-[var(--text-muted)] transition-colors"
                 />
               </div>
@@ -166,11 +168,11 @@ export default function Submit(){
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <label className="text-xs soft">
-                      Observation location
+                      {t.submit.observationLocation}
                     </label>
 
                     <div className="text-xs soft mt-1">
-                      Click on the map to select the location.
+                      {t.submit.mapInstruction}
                     </div>
                   </div>
 
@@ -200,7 +202,7 @@ export default function Submit(){
 
                   <div>
                     <label className="text-xs soft">
-                      Latitude
+                      {t.submit.latitude}
                     </label>
 
                     <input
@@ -212,7 +214,7 @@ export default function Submit(){
 
                   <div>
                     <label className="text-xs soft">
-                      Longitude
+                      {t.submit.longitude}
                     </label>
 
                     <input
@@ -229,7 +231,7 @@ export default function Submit(){
 
                 <div>
                   <label className="text-xs soft">
-                    Observation type
+                    {t.submit.observationType}
                   </label>
 
                   <select
@@ -237,16 +239,16 @@ export default function Submit(){
                     onChange={e=>setForm({...form,observation_type:e.target.value})}
                     className="w-full mt-2 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border)] rounded-xl p-3 outline-none focus:border-ocean-500 transition-colors"
                   >
-                    <option value="general">general</option>
-                    <option value="marine_debris">marine_debris</option>
-                    <option value="water_appearance">water_appearance</option>
-                    <option value="coral_condition">coral_condition</option>
+                    <option value="general">{t.submit.general}</option>
+                    <option value="marine_debris">{t.submit.marineDebris}</option>
+                    <option value="water_appearance">{t.submit.waterAppearance}</option>
+                    <option value="coral_condition">{t.submit.coralCondition}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="text-xs soft">
-                    Depth (optional)
+                    {t.submit.depth}
                   </label>
 
                   <input
@@ -276,11 +278,11 @@ export default function Submit(){
 
             <div>
               <div className="font-bold">
-                Location is evidence
+                {t.submit.locationEvidence}
               </div>
 
               <div className="text-xs soft">
-                Use the observation coordinates; do not infer sensitive site context.
+                {t.submit.locationEvidenceDesc}
               </div>
             </div>
           </div>
@@ -292,19 +294,19 @@ export default function Submit(){
           >
             {step==='idle'?
               <>
-                Run agentic analysis
+                {t.submit.runAnalysis}
                 <ArrowRight size={17}/>
               </>
               :
               step==='done'?
               <>
                 <CheckCircle2 size={17}/>
-                Complete
+                {t.submit.complete}
               </>
               :
               <>
                 <Loader2 size={17} className="animate-spin"/>
-                Processing…
+                {t.submit.processing}
               </>
             }
           </button>
