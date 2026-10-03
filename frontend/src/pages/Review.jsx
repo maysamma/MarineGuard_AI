@@ -3,13 +3,15 @@ import{api}from'../services/api';
 import{Link}from'react-router-dom';
 import{ShieldCheck,Clock,CheckCircle2}from'lucide-react';
 import PriorityBadge from'../components/PriorityBadge';
+import{useLanguage}from'../language';
 
 export default function Review(){
+  const{t}=useLanguage();
   const[q,setQ]=useState([]);
 
   const load=()=>api.get('/verification').then(r=>setQ(r.data));
 
-  useEffect(load,[]);
+  useEffect(()=>{load();},[]);
 
   const update=(id,status)=>
     api.patch(`/verification/${id}`,{
