@@ -70,3 +70,29 @@ def test_additional_evidence_requested_when_visual_is_insufficient():
 
     assert result["status"] == "additional_evidence_requested"
     assert "additional_image_or_visual_review" in result["requested"]
+
+def test_marine_debris_routes_to_sensor_and_historical_agents():
+    from unittest.mock import Mock, patch
+    from app.agents.orchestrator import Orchestrator
+    from app.models.models import Report
+
+    report = Report(
+        id=999,
+        site_id=1,
+        description="Visible plastic debris on the shoreline.",
+        latitude=21.5433,
+        longitude=39.1728,
+        observation_type="marine_debris",
+        status="submitted",
+    )
+
+    db = Mock()
+
+    with patch("app.agents.orchestrator.get_sensor_data", return_value=[]) as mock_sensors, \
+         patch("app.agents.orchestrator.get_historical_observations", return_value=[]) as mock_history:
+
+        orchestrator = Orchestrator(db)
+        orchestrator.run(report)
+
+        mock_sensors.assert_called_once_with(db, 1)
+        mock_history.assert_called_once_with(db, 1)

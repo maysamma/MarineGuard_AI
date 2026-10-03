@@ -173,6 +173,7 @@ class Orchestrator:
         if report.observation_type in {
             "water_appearance",
             "coral_condition",
+            "marine_debris",
             "general",
         }:
             sensors = get_sensor_data(
@@ -193,6 +194,7 @@ class Orchestrator:
         if report.observation_type in {
             "water_appearance",
             "coral_condition",
+            "marine_debris",
             "general",
         }:
             hist = get_historical_observations(
