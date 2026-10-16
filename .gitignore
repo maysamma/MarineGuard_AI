@@ -9,3 +9,26 @@ frontend/node_modules/
 frontend/dist/
 *.pyc
 .DS_Store
+
+# Local AI model weights
+*.pt
+*.pth
+*.safetensors
+*.onnx
+*.tflite
+
+# Local experiment caches
+**/.cache/huggingface/
+
+# Local frontend backups
+frontend/src/*.backup
+frontend/src/*.corrupted-backup
+
+# Local marine model experiments (keep model weights and caches out of Git)
+coral_test/
+fathomnet_test/
+noaa_benthic_test/
+oceanclip_test/
+
+# Local experiment outputs
+marineguard_test_grid.jpg
