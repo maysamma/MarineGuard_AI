@@ -316,9 +316,10 @@ class Orchestrator:
             evidence["visual"] = result
 
             report.image.analysis_status = (
-                "completed"
-                if result.get("confidence", 0) > 0
-                else "needs_review"
+                "needs_review"
+                if result.get("needs_review", True)
+                or result.get("confidence", 0) <= 0
+                else "completed"
             )
 
             self.db.commit()
