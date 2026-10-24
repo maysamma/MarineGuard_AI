@@ -211,3 +211,170 @@ def test_image_needs_review_when_vision_requests_review():
         orchestrator.run(report)
 
     assert image.analysis_status == "needs_review"
+
+def test_negative_visual_status_does_not_add_priority_points():
+    evidence = {
+        "visual": {
+            "visual_indicators": [
+                {
+                    "type": "marine_debris",
+                    "status": "not_detected",
+                    "confidence": 0.9,
+                }
+            ],
+            "confidence": 0.9,
+            "needs_review": False,
+        },
+        "sensor": [],
+        "sensor_anomaly": False,
+        "community_count": 0,
+        "historical_count": 0,
+    }
+
+    result = calculate_priority(evidence)
+
+    assert result["score"] == 0
+    assert result["level"] == "Low"
+
+def test_negative_status_with_concerning_keyword_does_not_add_points():
+    evidence = {
+        "visual": {
+            "visual_indicators": [
+                {
+                    "type": "marine_debris",
+                    "status": "not_detected_but_unusual",
+                    "confidence": 0.9,
+                }
+            ],
+            "confidence": 0.9,
+            "needs_review": False,
+        },
+        "sensor": [],
+        "sensor_anomaly": False,
+        "community_count": 0,
+        "historical_count": 0,
+    }
+
+    result = calculate_priority(evidence)
+
+    assert result["score"] == 0
+    assert result["level"] == "Low"
+
+def test_invalid_vision_confidence_requires_review():
+    from app.services.ai_service import validate_vision_result
+
+    result = validate_vision_result({
+        "visual_indicators": [],
+        "confidence": 1.5,
+        "summary": "Test",
+        "limitations": "",
+        "needs_review": False,
+    })
+
+    assert result["needs_review"] is True
+    assert result["confidence"] == 0.0
+
+def test_invalid_indicator_confidence_requires_review():
+    from app.services.ai_service import validate_vision_result
+
+    result = validate_vision_result({
+        "visual_indicators": [
+            {
+                "type": "marine_debris",
+                "status": "present",
+                "confidence": 2.0,
+                "explanation": "Test indicator",
+            }
+        ],
+        "confidence": 0.9,
+        "summary": "Test",
+        "limitations": "",
+        "needs_review": False,
+    })
+
+    assert result["needs_review"] is True
+    assert result["confidence"] == 0.0
+    assert result["visual_indicators"] == []
+
+def test_missing_vision_summary_requires_review():
+    from app.services.ai_service import validate_vision_result
+
+    result = validate_vision_result({
+        "visual_indicators": [],
+        "confidence": 0.9,
+        "limitations": "",
+        "needs_review": False,
+    })
+
+    assert result["needs_review"] is True
+    assert result["confidence"] == 0.0
+    assert result["visual_indicators"] == []
+
+
+def test_insufficient_visual_evidence_cannot_be_overridden():
+    from app.agents.orchestrator import Orchestrator
+    from unittest.mock import Mock
+
+    orchestrator = Orchestrator(Mock())
+
+    evidence = {
+        "observation_type": "marine_debris",
+        "visual": {
+            "visual_indicators": [],
+            "confidence": 0.0,
+            "needs_review": True,
+        },
+        "sensor": [{"type": "turbidity", "value": 25}],
+        "sensor_anomaly": True,
+        "historical_count": 5,
+        "community_count": 4,
+    }
+
+    result = orchestrator._assess_evidence_sufficiency(evidence)
+
+    assert result["sufficient"] is False
+    assert result["reason"] == "Visual evidence is insufficient or uncertain."
+
+def test_non_finite_vision_confidence_requires_review():
+    from app.services.ai_service import validate_vision_result
+
+    result = validate_vision_result({
+        "visual_indicators": [],
+        "confidence": float("nan"),
+        "summary": "Test",
+        "limitations": "",
+        "needs_review": False,
+    })
+
+    assert result["needs_review"] is True
+    assert result["confidence"] == 0.0
+    assert result["visual_indicators"] == []
+
+def test_string_needs_review_is_rejected():
+    from app.services.ai_service import validate_vision_result
+
+    result = validate_vision_result({
+        "visual_indicators": [],
+        "confidence": 0.9,
+        "summary": "Test",
+        "limitations": "",
+        "needs_review": "false",
+    })
+
+    assert result["needs_review"] is True
+    assert result["confidence"] == 0.0
+
+def test_infinite_vision_confidence_requires_review():
+    from app.services.ai_service import validate_vision_result
+
+    result = validate_vision_result({
+        "visual_indicators": [],
+        "confidence": float("inf"),
+        "summary": "Test",
+        "limitations": "",
+        "needs_review": False,
+    })
+
+    assert result["needs_review"] is True
+    assert result["confidence"] == 0.0
+    assert result["visual_indicators"] == []
